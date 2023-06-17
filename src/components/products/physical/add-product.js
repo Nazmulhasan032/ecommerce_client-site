@@ -17,6 +17,9 @@ import one from "../../../assets/images/pro3/1.jpg";
 import user from "../../../assets/images/user.png";
 import MDEditor from "@uiw/react-md-editor";
 
+// Here is the api key from imgbb.com website.
+const img_hosting_token = "52d68df82f85a090b74b0469832b09c4";
+
 const Add_product = () => {
 	const [value, setValue] = useState('')
 	const [quantity, setQuantity] = useState(1);
@@ -30,7 +33,7 @@ const Add_product = () => {
 		{ img: user },
 	]);
 
-	const onChange = (e) =>{
+	const onChange = (e) => {
 		setValue(e)
 	}
 
@@ -52,7 +55,8 @@ const Add_product = () => {
 		setQuantity(event.target.value);
 	};
 
-	//	image upload
+	//	image upload url
+	const img_hosting_url = `https://api.imgbb.com/1/upload?expiration=600&key=${img_hosting_token}`
 
 	const _handleImgChange = (e, i) => {
 		e.preventDefault();
@@ -66,7 +70,48 @@ const Add_product = () => {
 		reader.readAsDataURL(image);
 	};
 
-	const handleValidSubmit = () => {};
+
+	const handleValidSubmit = (e) => {
+		e.preventDefault();
+		const formData = new FormData(e.target);
+	  
+		fetch(img_hosting_url, {
+		  method: "POST",
+		  body: formData,
+		})
+		  .then((res) => res.json())
+		  .then((imgResponse) => {
+			if (imgResponse.success) {
+			  const image_id = imgResponse.data.display_url;
+			  const id = imgResponse.data.id;
+			  const variants = [
+				{ id, image_id },
+				// Include other variants if needed
+			  ];
+			  formData.append("variants", JSON.stringify(variants));
+			  
+			  // Submit the form with the updated formData
+			  fetch(`http://localhost:9001/api/products/add-variant?id=${id}`, {
+				method: "POST",
+				body: formData,
+			  })
+				.then((response) => response.json())
+				.then((data) => {
+				  // Handle the response data
+				  console.log(data);
+				})
+				.catch((error) => {
+				  // Handle any errors
+				  console.error(error);
+				});
+			}
+		  });
+	  };
+	  
+
+
+
+
 	return (
 		<Fragment>
 			<Breadcrumb title="Add Product" parent="Physical" />
@@ -231,8 +276,8 @@ const Add_product = () => {
 													</Label>
 													<div className="col-xl-8 col-sm-7 description-sm">
 														<MDEditor
-														value={value}
-														onChange={onChange}/>
+															value={value}
+															onChange={onChange} />
 													</div>
 												</FormGroup>
 											</div>
